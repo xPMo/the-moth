@@ -62,7 +62,7 @@ class SoothCard:
                 description.append(item.text)
         self.texts['description'] = '\n'.join(description)
 
-    def embed(self, description='**Meanings**: {meanings}', footer='{flavor}'):
+    def embed(self, description='{description}', footer='{flavor}', fields=[('Meanings', '{meanings}')]):
         # cache results in object
         if not hasattr(self, 'soup'):
             try:
@@ -77,19 +77,24 @@ class SoothCard:
                     url=self.url
                 )
                 .set_image(url=self.imgurl)
-                .set_footer(text=description.format(**self.textx))
+                .set_footer(text=footer.format(**self.texts))
         )
+        for key, val in fields:
+            embed.add_field(name=key, value=val.format(**self.texts))
         return embed
 
     def mdlink(self):
         return f'[{self.num}. {self.name}]({self.link})'
 
-
 DECK_BY_NAME, DECK_BY_NUM = get_sooth_list()
 
 @bot.slash_command(name='sooth', description='Draw a random sooth card')
 async def sooth(ctx):
-    return await ctx.respond(None, embed=DECK_BY_NUM[random.randint(1,60)].embed())
+    return await ctx.respond(None, embed=DECK_BY_NUM[random.randint(1,60)].embed(fields=[
+        ('Meanings', '{meanings}'),
+        ('Divination', '{divination}'),
+        ('Game Narrative', '{narrative}\n**Joy:** {joy}\n**Despair:** {despair}')
+        ]))
 
 @bot.slash_command(name='getsooth', description='Get details of a given sooth card')
 async def getsooth(ctx, prefix=commands.Option(str, 'Unique prefix to card name', default='')):
