@@ -35,27 +35,50 @@ def get_sooth_list():
 
 class SoothCard:
     def __init__(self, soup):
-        self.link = soup.find('a')['href']
+        self.url = soup.find('a')['href']
         self.num, self.name = soup.text.split('. ')
-
-    def embed(self):
         znum = str(self.num).zfill(2)
+        self.imgurl = f"https://app.invisiblesunrpg.com/wpsite/wp-content/uploads/2018/04/{znum}.png"
 
+    def fetch(self):
+        s = requests.session()
+        con = s.get(self.url)
+        self.soup = BeautifulSoup(con.text).find('article')
+        self.texts = {
+                'flavor': self.soup.find('p', {'class': 'flavor'}).text,
+                'meanings': self.soup.find(string='Meanings:').find_parent('p').contents[-1],
+                'divination': self.soup.find(string='Divination:').find_parent('p').contents[-1],
+                'value': self.soup.find(string='Value:').find_parent('p').contents[-1],
+                'narrative': self.soup.find(string='Game Narrative:').find_parent('p').contents[-1],
+                'joy': self.soup.find(string='Joy:').find_parent('p').contents[-1],
+                'despair': self.soup.find(string='Despair:').find_parent('p').contents[-1],
+        }
+
+        description = []
+        for item in self.soup.find('hr').next_siblings:
+            if item.name == 'hr':
+                break
+            if item.name == 'p':
+                description.append(item.text)
+        self.texts['description'] = '\n'.join(description)
+
+    def embed(self, description='**Meanings**: {meanings}', footer='{flavor}'):
         # cache results in object
         if not hasattr(self, 'soup'):
-            s = requests.session()
-            con = s.get(f'https://app.invisiblesunrpg.com/soothdeck/card-{znum}/')
-            self.soup = BeautifulSoup(con.text).find('article')
-            self.flavor = self.soup.find('p', {'class': 'flavor'}).text
-            self.meanings = self.soup.find(string='Meanings:').find_parent('p').contents[1]
+            try:
+                self.fetch()
+            except:
+                self.imgurl = self.imgurl or None
 
-        embed = discord.Embed(
-            title=self.name,
-            description=self.meanings,
-            url=f'https://app.invisiblesunrpg.com/soothdeck/card-{znum}/'
+        embed = (
+                discord.Embed(
+                    title=self.name,
+                    description=description.format(**self.texts),
+                    url=self.url
+                )
+                .set_image(url=self.imgurl)
+                .set_footer(text=description.format(**self.textx))
         )
-        embed.set_footer(text=self.flavor)
-        embed.set_image(url=f"https://app.invisiblesunrpg.com/wpsite/wp-content/uploads/2018/04/{znum}.png")
         return embed
 
     def mdlink(self):
