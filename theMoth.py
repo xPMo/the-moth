@@ -22,7 +22,7 @@ class SoothCard:
 
         # cache results in object
         if not hasattr(self, 'soup'):
-            s = requests.session()
+            s = requests.session() # TODO: keep session alive?
             con = s.get(self.url)
             self.soup = BS(con.text).find('article')
             self.flavor = self.soup.find('p', {'class': 'flavor'}).text
@@ -58,12 +58,17 @@ def get_sooth_list():
 DECK_BY_NAME, DECK_BY_NUM = get_sooth_list()
 logging.info(f'Loaded {len(DECK_BY_NAME)} cards into Sooth Deck')
 
-def sooth_prefix_match(prefix):
-    return [card for name, card in DECK_BY_NAME.items() if any(s.startswith(prefix.lower()) for s in [name, *name.split()])]
+def prefix_match_key(prefix, dictionary):
+    '''
+    :param dictionary: expected to itemize() into key-value pairs, where key is a lowercase string
+    :return list[T]: the matching items
+    '''
+    return [v for k, v in dictionary.items() if any(s.startswith(prefix.lower()) for s in [k, *k.split()])]
 
-def sooth_complete(ctx: discord.AutocompleteContext):
-    cards = sooth_prefix_match(ctx.value)
-    return [card.name for card in cards]
+def list_complete(dictionary, get_name):
+    def completer(ctx: discord.AutocompleteContext):
+        return [get_name(v) for v in prefix_match_key(ctx.value, dictionary)]
+    return completer
 
 ## Bot
 
@@ -82,7 +87,7 @@ async def sooth(ctx):
     return await ctx.respond(None, embed=card.embed())
 
 @bot.slash_command(name='getsooth', description='Get details of a given sooth card')
-async def getsooth(ctx, prefix=commands.Option(str, 'Card name or unique prefix', name='card', autocomplete=sooth_complete, default='')):
+async def getsooth(ctx, prefix: commands.Option(str, 'Card name or unique prefix', name='card', autocomplete=list_complete(DECK_BY_NAME, lambda card: card.name), default='')):
     if not prefix:
         embed = discord.Embed(
             title='Sooth Deck',
@@ -95,7 +100,7 @@ async def getsooth(ctx, prefix=commands.Option(str, 'Card name or unique prefix'
 
         return await ctx.respond(None, embed=embed)
 
-    cards = sooth_prefix_match(prefix)
+    cards = prefix_match_key(prefix, DECK_BY_NAME)
 
     if len(cards) > 1:
         cards = list(map(lambda c: c.name, cards))
