@@ -100,6 +100,10 @@ async def getsooth(ctx, prefix: commands.Option(str, 'Card name or unique prefix
 
         return await ctx.respond(None, embed=embed)
 
+    if card := DECK_BY_NAME.get(prefix.lower()):
+        logging.info(f'Exact match for "{prefix}"')
+        return await ctx.respond(None, embed=card.embed())
+
     cards = prefix_match_key(prefix, DECK_BY_NAME)
 
     if len(cards) > 1:
