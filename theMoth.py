@@ -83,7 +83,7 @@ async def on_ready():
 @bot.slash_command(name='sooth', description='Draw a random sooth card')
 async def sooth(ctx):
     card = DECK_BY_NUM[random.randint(1,60)]
-    logging.info(f'Drew card {card.num}: {card.name}')
+    logging.info(f'/sooth: drew card {card.num}: {card.name}')
     return await ctx.respond(None, embed=card.embed())
 
 @bot.slash_command(name='getsooth', description='Get details of a given sooth card')
@@ -97,11 +97,11 @@ async def getsooth(ctx, prefix: commands.Option(str, 'Card name or unique prefix
         for family in ['Secrets', 'Visions', 'Mysteries', 'Notions']:
             embed.add_field(name=family, value='\n'.join(f'{i}. {DECK_BY_NUM[i].name}' for i in range(idx, idx + 15)))
             idx += 15
-
+        logging.info('/getsooth: no prefix given, printing deck')
         return await ctx.respond(None, embed=embed)
 
     if card := DECK_BY_NAME.get(prefix.lower()):
-        logging.info(f'Exact match for "{prefix}"')
+        logging.info(f'/getsooth: exact match for "{prefix}"')
         return await ctx.respond(None, embed=card.embed())
 
     cards = prefix_match_key(prefix, DECK_BY_NAME)
@@ -109,14 +109,14 @@ async def getsooth(ctx, prefix: commands.Option(str, 'Card name or unique prefix
     if len(cards) > 1:
         cards = list(map(lambda c: c.name, cards))
         cards = ', '.join(cards[0:-1]) + ' or ' + cards[-1]
-        logging.info(f'Matched prefix "{prefix}" to cards "{cards}"')
+        logging.info(f'/getsooth: matched prefix "{prefix}" to cards "{cards}"')
         return await ctx.respond(f'Did you mean {cards}?')
 
     if len(cards):
-        logging.info(f'Matched prefix "{prefix}" to card "{cards[0].name}"')
+        logging.info(f'/getsooth: matched prefix "{prefix}" to card "{cards[0].name}"')
         return await ctx.respond(None, embed=cards[0].embed())
 
-    logging.info(f'Could not match "{prefix}"')
+    logging.info(f'/getsooth: could not match "{prefix}"')
     return await ctx.respond('No matching sooth card!')
 
 @bot.slash_command(name='char', description='Generate a random character')
@@ -227,6 +227,7 @@ async def roll(ctx, dice=commands.Option(str, 'Use +[num] to add Invisible Sun M
         # post the final message, e.g.: "4+3+1 = 8"
         return await ctx.respond(f'{dice}: {lhs} = {rhs}')
     except:
+        logging.info(f'/roll: failed to parse string "{dice}"')
         return await ctx.respond(f'Invalid dice or bonus spec: {dice}.'
                '\nUse "/roll" to roll a single Invisible Sun die (mundane).'
                '\nTo add magic dice, use +[# of magic dice].'
