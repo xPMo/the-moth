@@ -75,6 +75,7 @@ def list_complete(dictionary, get_name):
 token = os.environ.get('MOTH_BOT_TOKEN')
 intents = discord.Intents.default()
 bot = discord.Bot()
+bot.default_command_integration_types.add(discord.IntegrationType.user_install)
 
 @bot.event
 async def on_ready():
